@@ -1,0 +1,34 @@
+{
+    "name": "ztce-frontend",
+    "version": "1.0.0",
+    "description": "ZTCE — Zero-Trust Air-Gapped Collaborative Execution Engine Frontend",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "dev:lan": "next dev -H 0.0.0.0 -p 3000",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "@excalidraw/excalidraw": "^0.18.1",
+        "@monaco-editor/react": "^4.7.0",
+        "@xterm/addon-fit": "^0.11.0",
+        "@xterm/xterm": "^6.0.0",
+        "axios": "^1.7.7",
+        "next": "^16.2.4",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "react-pdf": "^10.4.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.14.2",
+        "@types/react": "^19.2.4",
+        "@types/react-dom": "^19.2.3",
+        "@typescript-eslint/eslint-plugin": "^8.5.0",
+        "@typescript-eslint/parser": "^8.5.0",
+        "eslint": "^9.7.0",
+        "eslint-config-next": "^16.2.4",
+        "typescript": "^5.7.2"
+    }
+}
