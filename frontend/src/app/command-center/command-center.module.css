@@ -1,0 +1,394 @@
+.container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    background: radial-gradient(circle at top right, #17304f 0%, #0b1422 40%, #08101d 100%);
+    color: #dce8f5;
+}
+
+.headerBar {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.headerBar h1 {
+    margin: 0;
+    color: #66d9ff;
+}
+
+.headerActions {
+    display: flex;
+    gap: 10px;
+}
+
+.card,
+.dashboardPanel {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(15, 24, 36, 0.9);
+    border: 1px solid rgba(102, 217, 255, 0.2);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 14px;
+    border: 1px solid rgba(120, 180, 230, 0.35);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #e8f2fc;
+}
+
+.primaryBtn,
+.secondaryBtn {
+    display: inline-block;
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    margin-right: 8px;
+}
+
+.primaryBtn {
+    background: linear-gradient(135deg, #65d6ff 0%, #4ea4ff 100%);
+    color: #0a1320;
+}
+
+.secondaryBtn {
+    background: rgba(110, 170, 220, 0.16);
+    color: #a7dbff;
+    border: 1px solid rgba(110, 170, 220, 0.4);
+}
+
+.dangerBtn {
+    display: inline-block;
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255, 110, 110, 0.45);
+    margin-right: 8px;
+    background: rgba(255, 110, 110, 0.14);
+    color: #ffb4b4;
+}
+
+.message {
+    color: #8ad8ff;
+    font-size: 0.9rem;
+}
+
+.linkHint {
+    margin: 8px 0 0;
+    color: #b9dfff;
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.sessionsList {
+    margin-top: 14px;
+    display: grid;
+    gap: 12px;
+}
+
+.sessionCard {
+    border: 1px solid rgba(120, 180, 230, 0.22);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.sessionCard p {
+    margin: 2px 0;
+    word-break: break-all;
+}
+
+.sessionMeta p {
+    margin: 6px 0;
+    word-break: break-all;
+}
+
+.rowBtns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.featureToggles {
+    margin: 18px 0;
+}
+
+.broadcastList,
+.leaderboardList {
+    display: grid;
+    gap: 10px;
+}
+
+.broadcastCard,
+.leaderboardCard {
+    border: 1px solid rgba(120, 180, 230, 0.22);
+    border-radius: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.broadcastCard p,
+.leaderboardCard p {
+    margin: 4px 0 0;
+    opacity: 0.85;
+}
+
+.leaderboardStats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.panelHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.panelHeader h3,
+.panelHeader h4 {
+    margin: 0;
+    color: #66d9ff;
+}
+
+.studentsWrap {
+    margin-top: 14px;
+}
+
+.livePanel {
+    margin-top: 16px;
+    border: 1px solid rgba(120, 180, 230, 0.22);
+    border-radius: 10px;
+    padding: 14px;
+    background: rgba(10, 16, 25, 0.6);
+}
+
+.liveHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.liveHeader h3,
+.liveHeader p {
+    margin: 0;
+}
+
+.toolbarRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.select {
+    min-width: 260px;
+    padding: 10px;
+    border: 1px solid rgba(120, 180, 230, 0.35);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #e8f2fc;
+}
+
+.monitorGrid {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 10px;
+}
+
+.editorWrap {
+    border: 1px solid rgba(120, 180, 230, 0.22);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sideOutput {
+    border: 1px solid rgba(120, 180, 230, 0.22);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(10, 16, 25, 0.9);
+}
+
+.sideOutput h4 {
+    margin: 4px 0 8px;
+}
+
+.sideOutput pre {
+    margin: 0 0 10px;
+    min-height: 120px;
+    max-height: 180px;
+    overflow: auto;
+    border-radius: 6px;
+    padding: 8px;
+    background: #0b1320;
+    color: #cee5ff;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.studentCard {
+    border: 1px solid rgba(120, 180, 230, 0.22);
+    border-radius: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.statusRow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.activity {
+    margin: 8px 0;
+    padding: 8px;
+    background: rgba(101, 214, 255, 0.08);
+    border-radius: 6px;
+    color: #9adfff;
+}
+
+.taskList {
+    display: grid;
+    gap: 10px;
+}
+
+.taskCard {
+    border: 1px solid rgba(120, 180, 230, 0.24);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.taskCard p {
+    margin: 4px 0;
+}
+
+.shareOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(4, 10, 18, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(8px);
+}
+
+.shareModal {
+    width: min(560px, 100%);
+    border-radius: 16px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(16, 26, 39, 0.98), rgba(10, 16, 25, 0.98));
+    border: 1px solid rgba(120, 180, 230, 0.28);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.shareModalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.shareModalHeader h3 {
+    margin: 0;
+    color: #66d9ff;
+}
+
+.shareCloseBtn {
+    border: none;
+    background: rgba(110, 170, 220, 0.16);
+    color: #dce8f5;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.shareLinkBox {
+    margin: 14px 0;
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(120, 180, 230, 0.2);
+    color: #d7ebff;
+    word-break: break-all;
+    font-size: 0.98rem;
+}
+
+.shareActions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 14px;
+    }
+
+    .headerBar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sessionCard {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .monitorGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .taskCard {
+        flex-direction: column;
+    }
+
+    .shareActions {
+        flex-direction: column;
+    }
+}
