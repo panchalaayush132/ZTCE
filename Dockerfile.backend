@@ -1,0 +1,28 @@
+# ─── ZTCE Backend Dockerfile ────────────────────────────────────────────────
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend source
+COPY backend/ .
+
+# Create necessary directories
+RUN mkdir -p media staticfiles db
+
+# Run migrations and collect static files
+RUN python manage.py collectstatic --noinput 2>/dev/null || true
+
+# Expose port
+EXPOSE 8000
+
+# Run with Daphne (ASGI server) for WebSocket support
+CMD ["sh", "-c", "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"]

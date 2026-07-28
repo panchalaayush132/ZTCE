@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ZTCE — Zero-Trust Air-Gapped Collaborative Execution Engine
+# Docker Compose Orchestration
+# ─────────────────────────────────────────────────────────────────────────────
+# Deploy the entire platform with a single command:
+#   docker-compose up --build
+#
+# All services run on the local network. Zero internet dependency after build.
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: '3.8'
+
+services:
+  # ─── Backend: Django ASGI + Channels + REST API ───────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: ztce-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - ZTCE_SECRET_KEY=${ZTCE_SECRET_KEY:-ztce-docker-secret-change-me}
+      - ZTCE_DEBUG=${ZTCE_DEBUG:-false}
+      - ZTCE_ALLOWED_HOSTS=*
+      - USE_REDIS_CHANNEL_LAYERS=true
+      - REDIS_HOST=redis
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - ZTCE_ENCRYPTION_KEY=${ZTCE_ENCRYPTION_KEY:-}
+    depends_on:
+      - redis
+    volumes:
+      - backend-data:/app/media
+      - backend-db:/app/db
+    networks:
+      - ztce-network
+    restart: unless-stopped
+
+  # ─── Frontend: Next.js 16 + React 19 ─────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ztce-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE=http://backend:8000/api
+    depends_on:
+      - backend
+    networks:
+      - ztce-network
+    restart: unless-stopped
+
+  # ─── Redis: Channel Layer for WebSocket Broadcasting ──────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ztce-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ztce-network
+    restart: unless-stopped
+
+  # ─── Ollama: Local Zero-Trust AI Engine ───────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ztce-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ztce-network
+    restart: unless-stopped
+    # GPU support (uncomment for NVIDIA GPU acceleration):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  backend-data:
+  backend-db:
+  redis-data:
+  ollama-models:
+
+networks:
+  ztce-network:
+    driver: bridge
