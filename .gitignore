@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+venv/
+env/
+.venv/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Database
+db.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Next.js
+.next/
+out/
+
+# Electron
+dist-electron/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Media uploads
+media/broadcast_files/
+
+# Docker
+*.log
+
+# Coverage
+htmlcov/
+.coverage
