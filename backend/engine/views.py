@@ -1,4 +1,4 @@
-﻿import json
+import json
 import subprocess
 import importlib
 import pkgutil
@@ -116,8 +116,8 @@ def _resolve_session_for_join(session_identifier):
     return Session.objects.filter(session_token=session_identifier).first()
 
 
-def _Operator_runtime_paths(Operator_id: str):
-    runtime_root = operator_runtimes_ROOT / str(Operator_id)
+def _operator_runtime_paths(operator_id: str):
+    runtime_root = operator_runtimes_ROOT / str(operator_id)
     venv_dir = runtime_root / '.venv'
     workspace_dir = runtime_root / 'workspace'
     python_executable = venv_dir / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
@@ -125,8 +125,8 @@ def _Operator_runtime_paths(Operator_id: str):
     return runtime_root, venv_dir, workspace_dir, python_executable, scripts_dir
 
 
-def _ensure_Operator_runtime(Operator_id: str):
-    runtime_root, venv_dir, workspace_dir, python_executable, scripts_dir = _Operator_runtime_paths(Operator_id)
+def _ensure_operator_runtime(operator_id: str):
+    runtime_root, venv_dir, workspace_dir, python_executable, scripts_dir = _operator_runtime_paths(operator_id)
 
     runtime_root.mkdir(parents=True, exist_ok=True)
     workspace_dir.mkdir(parents=True, exist_ok=True)
@@ -227,17 +227,17 @@ def _detect_lan_ip():
     return '127.0.0.1'
 
 
-def _sync_Operator_workspace(Operator_id: str, workspace_dir: Path):
+def _sync_operator_workspace(operator_id: str, workspace_dir: Path):
     """Mirror Operator files into persistent workspace for accurate execution context."""
-    files = OperatorFile.objects.filter(Operator_id=Operator_id)
-    for Operator_file in files:
-        relative_path = Operator_file.filename.strip().replace('\\', '/')
+    files = OperatorFile.objects.filter(operator_id=operator_id)
+    for operator_file in files:
+        relative_path = operator_file.filename.strip().replace('\\', '/')
         if not relative_path:
             continue
 
         destination = workspace_dir / relative_path
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(Operator_file.content or '', encoding='utf-8')
+        destination.write_text(operator_file.content or '', encoding='utf-8')
 
 
 def _coerce_bool(value):
@@ -348,13 +348,13 @@ class SessionViewSet(viewsets.ModelViewSet):
         cutoff = timezone.now() - timedelta(days=7)
         leaderboard = []
 
-        for Operator in session.Operators.all():
-            executions = Operator.executions.all()
+        for operator_obj in session.operators.all():
+            executions = operator_obj.executions.all()
             total_execs = executions.count()
             success_execs = executions.filter(return_code=0, stderr='').count()
             accuracy = (success_execs / total_execs * 100) if total_execs > 0 else 0
 
-            recent_activity = Operator.activity_logs.filter(created_at__gte=cutoff)
+            recent_activity = operator_obj.activity_logs.filter(created_at__gte=cutoff)
             green_logs = recent_activity.filter(status='green').count()
             yellow_logs = recent_activity.filter(status='yellow').count()
             red_logs = recent_activity.filter(status='red').count()
@@ -362,9 +362,9 @@ class SessionViewSet(viewsets.ModelViewSet):
             behavior_score = int((accuracy * 0.7) + (green_logs * 2) + (yellow_logs * 0.6) - (red_logs * 1.5) - (idle_logs * 0.2))
 
             leaderboard.append({
-                'Operator_id': Operator.id,
-                'name': Operator.name,
-                'username': Operator.username,
+                'operator_id': operator_obj.id,
+                'name': operator_obj.name,
+                'username': operator_obj.username,
                 'accuracy': round(accuracy, 1),
                 'total_executions': total_execs,
                 'weekly_activity': {
@@ -377,12 +377,12 @@ class SessionViewSet(viewsets.ModelViewSet):
             })
 
         leaderboard.sort(key=lambda item: item['score'], reverse=True)
-        weekly_activity_total = ActivityLog.objects.filter(Operator__session=session, created_at__gte=cutoff).count()
+        weekly_activity_total = ActivityLog.objects.filter(operator__session=session, created_at__gte=cutoff).count()
 
         return {
             'session_id': str(session.id),
             'leaderboard_visible': session.leaderboard_visible,
-            'total_Operators': session.Operators.count(),
+            'total_operators': session.operators.count(),
             'weekly_activity_total': weekly_activity_total,
             'top_10': leaderboard[:10],
         }
@@ -390,8 +390,8 @@ class SessionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def create_session(self, request):
         """Create a new tutoring session"""
-        creator_id = request.data.get('creator_id', 'tutor')
-        creator_name = request.data.get('creator_name', 'Tutor')
+        creator_id = request.data.get('creator_id', 'admin')
+        creator_name = request.data.get('creator_name', 'Admin')
         description = request.data.get('description', '')
         leaderboard_visible = _coerce_bool(request.data.get('leaderboard_visible', False))
         
@@ -415,7 +415,7 @@ class SessionViewSet(viewsets.ModelViewSet):
     def _set_session_flag(self, request, field_name: str):
         session = self.get_object()
         enforce_session_token(request, session)
-        if field_name not in {'ai_enabled', 'autocomplete_enabled', 'leaderboard_visible', 'allow_Operator_download'}:
+        if field_name not in {'ai_enabled', 'autocomplete_enabled', 'leaderboard_visible', 'allow_operator_download'}:
             return Response({'error': 'Unsupported feature'}, status=status.HTTP_400_BAD_REQUEST)
 
         if 'enabled' in request.data:
@@ -441,11 +441,11 @@ class SessionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def toggle_download(self, request, pk=None):
-        return self._set_session_flag(request, 'allow_Operator_download')
+        return self._set_session_flag(request, 'allow_operator_download')
 
     @action(detail=True, methods=['post'])
     def update_tutor_code(self, request, pk=None):
-        """Broadcast live tutor code to all Operators"""
+        """Broadcast live tutor code to all operators"""
         session = self.get_object()
         enforce_session_token(request, session)
         code = request.data.get('code', '')
@@ -473,18 +473,18 @@ class SessionViewSet(viewsets.ModelViewSet):
         os.makedirs(export_root, exist_ok=True)
         
         exported_count = 0
-        for Operator in session.Operators.all():
-            Operator_dir = os.path.join(export_root, Operator.name)
-            os.makedirs(Operator_dir, exist_ok=True)
-            for s_file in Operator.files.all():
+        for operator_obj in session.operators.all():
+            operator_dir = os.path.join(export_root, operator_obj.name)
+            os.makedirs(operator_dir, exist_ok=True)
+            for s_file in operator_obj.files.all():
                 safe_filename = os.path.normpath(s_file.filename).replace('\\', '/')
                 if safe_filename.startswith('..') or safe_filename.startswith('/'):
                     continue
-                file_path = os.path.join(Operator_dir, safe_filename)
+                file_path = os.path.join(operator_dir, safe_filename)
                 
-                # Verify resolved path stays within Operator_dir
+                # Verify resolved path stays within operator_dir
                 resolved_path = os.path.realpath(file_path)
-                if not resolved_path.startswith(os.path.realpath(Operator_dir)):
+                if not resolved_path.startswith(os.path.realpath(operator_dir)):
                     continue
                 
                 with open(file_path, 'w', encoding='utf-8') as f:
@@ -512,7 +512,7 @@ class SessionViewSet(viewsets.ModelViewSet):
         return Response(self._build_analytics_payload(session))
 
     @action(detail=False, methods=['post'])
-    def add_Operator(self, request):
+    def add_operator(self, request):
         """Add Operator to a session"""
         session_id = request.data.get('session_id')
         username = request.data.get('username')
@@ -526,7 +526,7 @@ class SessionViewSet(viewsets.ModelViewSet):
         if not session:
             return Response({'error': 'Session not found. Check Session ID/token.'}, status=status.HTTP_404_NOT_FOUND)
         
-        Operator, created = Operator.objects.get_or_create(
+        operator_obj, created = Operator.objects.get_or_create(
             session=session,
             username=username,
             defaults={'name': name, 'email': email}
@@ -534,48 +534,48 @@ class SessionViewSet(viewsets.ModelViewSet):
         
         # Create main file
         OperatorFile.objects.get_or_create(
-            Operator=Operator,
+            operator=operator_obj,
             filename='main.py',
             defaults={'is_main': True, 'content': '# Start coding here\n'}
         )
 
-        # Notify tutor dashboards immediately when a Operator joins/rejoins.
+        # Notify tutor dashboards immediately when an operator joins/rejoins.
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             f'session_{session.id}',
             {
-                'type': 'Operator_added',
-                'Operator_id': str(Operator.id),
-                'Operator_name': Operator.name,
+                'type': 'operator_added',
+                'operator_id': str(operator_obj.id),
+                'operator_name': operator_obj.name,
             },
         )
         
-        return Response(OperatorSerializer(Operator).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        return Response(OperatorSerializer(operator_obj).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def heartbeat(self, request, pk=None):
         """Update Operator heartbeat (keep-alive)"""
-        Operator = get_object_or_404(Operator, id=pk)
-        Operator.last_heartbeat = timezone.now()
-        Operator.save(update_fields=['last_heartbeat'])
+        operator_obj = get_object_or_404(operator_obj, id=pk)
+        operator_obj.last_heartbeat = timezone.now()
+        operator_obj.save(update_fields=['last_heartbeat'])
 
         # Push online status updates to tutor dashboards in realtime.
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f'session_{Operator.session_id}',
+            f'session_{operator_obj.session_id}',
             {
                 'type': 'activity_update',
-                'Operator_id': str(Operator.id),
+                'operator_id': str(operator_obj.id),
                 'status': 'online',
             },
         )
-        return Response({'is_online': Operator.is_online()})
+        return Response({'is_online': operator_obj.is_online()})
     
     @action(detail=True, methods=['get'])
     def get_files(self, request, pk=None):
-        """Get all files for a Operator"""
-        Operator = self.get_object()
-        files = Operator.files.all()
+        """Get all files for an operator"""
+        operator_obj = self.get_object()
+        files = operator_obj.files.all()
         return Response(OperatorFileSerializer(files, many=True).data)
 
 
@@ -585,7 +585,7 @@ class OperatorViewSet(viewsets.ModelViewSet):
     serializer_class = OperatorSerializer
 
     @action(detail=False, methods=['post'])
-    def add_Operator(self, request):
+    def add_operator(self, request):
         """Add Operator to a session"""
         session_id = request.data.get('session_id')
         username = request.data.get('username')
@@ -599,14 +599,14 @@ class OperatorViewSet(viewsets.ModelViewSet):
         if not session:
             return Response({'error': 'Session not found. Check Session ID/token.'}, status=status.HTTP_404_NOT_FOUND)
 
-        Operator, created = Operator.objects.get_or_create(
+        operator_obj, created = Operator.objects.get_or_create(
             session=session,
             username=username,
             defaults={'name': name, 'email': email}
         )
 
         OperatorFile.objects.get_or_create(
-            Operator=Operator,
+            operator=operator_obj,
             filename='main.py',
             defaults={'is_main': True, 'content': '# Start coding here\n'}
         )
@@ -615,75 +615,75 @@ class OperatorViewSet(viewsets.ModelViewSet):
         async_to_sync(channel_layer.group_send)(
             f'session_{session.id}',
             {
-                'type': 'Operator_added',
-                'Operator_id': str(Operator.id),
-                'Operator_name': Operator.name,
+                'type': 'operator_added',
+                'operator_id': str(operator_obj.id),
+                'operator_name': operator_obj.name,
             },
         )
 
-        return Response(OperatorSerializer(Operator).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        return Response(OperatorSerializer(operator_obj).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def heartbeat(self, request, pk=None):
         """Update Operator heartbeat (keep-alive) and traffic light status"""
-        Operator = self.get_object()
-        Operator.last_heartbeat = timezone.now()
-        Operator.save(update_fields=['last_heartbeat'])
+        operator_obj = self.get_object()
+        operator_obj.last_heartbeat = timezone.now()
+        operator_obj.save(update_fields=['last_heartbeat'])
 
         status_val = request.data.get('status', 'online')
         message = request.data.get('message', '')
 
         # Create ActivityLog if status is provided and different
         if status_val in ['green', 'yellow', 'red', 'idle']:
-            last_log = ActivityLog.objects.filter(Operator=Operator).first()
+            last_log = ActivityLog.objects.filter(operator=operator_obj).first()
             if not last_log or last_log.status != status_val:
-                ActivityLog.objects.create(Operator=Operator, status=status_val, message=message)
+                ActivityLog.objects.create(operator=operator_obj, status=status_val, message=message)
 
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f'session_{Operator.session_id}',
+            f'session_{operator_obj.session_id}',
             {
                 'type': 'activity_update',
-                'Operator_id': str(Operator.id),
+                'operator_id': str(operator_obj.id),
                 'status': status_val,
                 'message': message,
             },
         )
-        return Response({'is_online': Operator.is_online()})
+        return Response({'is_online': operator_obj.is_online()})
 
     @action(detail=True, methods=['get'])
     def get_files(self, request, pk=None):
-        """Get all files for a Operator"""
-        Operator = self.get_object()
-        files = Operator.files.all()
+        """Get all files for an operator"""
+        operator_obj = self.get_object()
+        files = operator_obj.files.all()
         return Response(OperatorFileSerializer(files, many=True).data)
 
     @action(detail=True, methods=['post'])
     def leave_session(self, request, pk=None):
-        """Mark the Operator as leaving and persist their workspace immediately."""
-        Operator = self.get_object()
+        """Mark the operator as leaving and persist their workspace immediately."""
+        operator_obj = self.get_object()
 
         try:
-            runtime = _ensure_Operator_runtime(str(Operator.id))
-            _sync_Operator_workspace(str(Operator.id), runtime['workspace_dir'])
+            runtime = _ensure_operator_runtime(str(operator_obj.id))
+            _sync_operator_workspace(str(operator_obj.id), runtime['workspace_dir'])
         except Exception:
             pass
 
-        Operator.last_heartbeat = timezone.now() - timedelta(seconds=61)
-        Operator.save(update_fields=['last_heartbeat'])
+        operator_obj.last_heartbeat = timezone.now() - timedelta(seconds=61)
+        operator_obj.save(update_fields=['last_heartbeat'])
 
         ActivityLog.objects.create(
-            Operator=Operator,
+            operator=operator_obj,
             status='idle',
             message='Operator exited session',
         )
 
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f'session_{Operator.session_id}',
+            f'session_{operator_obj.session_id}',
             {
                 'type': 'activity_update',
-                'Operator_id': str(Operator.id),
+                'operator_id': str(operator_obj.id),
                 'status': 'idle',
                 'message': 'Operator exited session',
             },
@@ -699,16 +699,16 @@ class OperatorFileViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def create_file(self, request):
-        """Create a new file for Operator"""
-        Operator_id = request.data.get('Operator_id')
+        """Create a new file for operator"""
+        operator_id = request.data.get('operator_id')
         filename = request.data.get('filename', 'main.py')
         content = request.data.get('content', '# Start coding here\n')
         language = request.data.get('language', 'python')
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
         
         file, created = OperatorFile.objects.get_or_create(
-            Operator=Operator,
+            operator=operator_obj,
             filename=filename,
             defaults={'content': content, 'language': language}
         )
@@ -739,7 +739,7 @@ class OperatorFileViewSet(viewsets.ModelViewSet):
         source_client_id = request.data.get('client_id')
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f'Operator_{file.Operator_id}',
+            f'operator_{file.operator_id}',
             {
                 'type': 'code_update',
                 'filename': file.filename,
@@ -768,15 +768,15 @@ class ActivityLogViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def log_activity(self, request):
         """Log Operator activity"""
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         status_val = request.data.get('status', 'idle')
         message = request.data.get('message', '')
         error_details = request.data.get('error_details', '')
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
         
         log = ActivityLog.objects.create(
-            Operator=Operator,
+            operator=operator_obj,
             status=status_val,
             message=message,
             error_details=error_details
@@ -785,16 +785,16 @@ class ActivityLogViewSet(viewsets.ModelViewSet):
         return Response(ActivityLogSerializer(log).data, status=status.HTTP_201_CREATED)
     
     @action(detail=False, methods=['get'])
-    def get_Operator_activity(self, request):
-        """Get activity logs for a Operator"""
-        Operator_id = request.query_params.get('Operator_id')
+    def get_operator_activity(self, request):
+        """Get activity logs for an operator"""
+        operator_id = request.query_params.get('operator_id')
         try:
             limit = int(request.query_params.get('limit', 50))
         except (TypeError, ValueError):
             limit = 50
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
-        logs = Operator.activity_logs.all()[:limit]
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        logs = operator_obj.activity_logs.all()[:limit]
         
         return Response(ActivityLogSerializer(logs, many=True).data)
 
@@ -807,16 +807,16 @@ class CodeSnapshotViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def create_snapshot(self, request):
         """Create code snapshot"""
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         filename = request.data.get('filename')
         content = request.data.get('content')
         message = request.data.get('message', '')
         language = request.data.get('language', 'python')
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
         
         snapshot = CodeSnapshot.objects.create(
-            Operator=Operator,
+            operator=operator_obj,
             filename=filename,
             content=content,
             language=language,
@@ -826,16 +826,16 @@ class CodeSnapshotViewSet(viewsets.ModelViewSet):
         return Response(CodeSnapshotSerializer(snapshot).data, status=status.HTTP_201_CREATED)
     
     @action(detail=False, methods=['get'])
-    def get_Operator_snapshots(self, request):
-        """Get snapshots for a Operator"""
-        Operator_id = request.query_params.get('Operator_id')
+    def get_operator_snapshots(self, request):
+        """Get snapshots for an operator"""
+        operator_id = request.query_params.get('operator_id')
         try:
             limit = int(request.query_params.get('limit', 20))
         except (TypeError, ValueError):
             limit = 20
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
-        snapshots = Operator.snapshots.all()[:limit]
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        snapshots = operator_obj.snapshots.all()[:limit]
         
         return Response(CodeSnapshotSerializer(snapshots, many=True).data)
 
@@ -848,14 +848,14 @@ class MessageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def send_message(self, request):
         """Send a message"""
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         sender = request.data.get('sender')
         content = request.data.get('content')
 
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
 
         message = Message.objects.create(
-            Operator=Operator,
+            operator=operator_obj,
             sender=sender,
             content=encrypt_text(content)
         )
@@ -863,16 +863,16 @@ class MessageViewSet(viewsets.ModelViewSet):
         return Response(MessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
-    def get_Operator_messages(self, request):
-        """Get messages for a Operator"""
-        Operator_id = request.query_params.get('Operator_id')
+    def get_operator_messages(self, request):
+        """Get messages for an operator"""
+        operator_id = request.query_params.get('operator_id')
         try:
             limit = int(request.query_params.get('limit', 100))
         except (TypeError, ValueError):
             limit = 100
 
-        Operator = get_object_or_404(Operator, id=Operator_id)
-        messages = Operator.messages.all()[:limit]
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        messages = operator_obj.messages.all()[:limit]
 
         return Response(MessageSerializer(messages, many=True).data)
 
@@ -1002,29 +1002,29 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def execute(self, request):
         """Execute code"""
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         code = request.data.get('code', '')
         file_id = request.data.get('file_id')
 
-        throttle_request(f"execute:{Operator_id}", limit=25, window_seconds=60)
+        throttle_request(f"execute:{operator_id}", limit=25, window_seconds=60)
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
 
         if file_id:
-            Operator_file = get_object_or_404(OperatorFile, id=file_id, Operator=Operator)
+            operator_file = get_object_or_404(OperatorFile, id=file_id, operator=operator_obj)
             if code:
-                Operator_file.content = code
-                Operator_file.increment_version()
-                Operator_file.save()
+                operator_file.content = code
+                operator_file.increment_version()
+                operator_file.save()
             else:
-                code = Operator_file.content
+                code = operator_file.content
 
         if not code:
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            runtime = _ensure_Operator_runtime(str(Operator.id))
-            _sync_Operator_workspace(str(Operator.id), runtime['workspace_dir'])
+            runtime = _ensure_operator_runtime(str(operator_obj.id))
+            _sync_operator_workspace(str(operator_obj.id), runtime['workspace_dir'])
 
             execution_script = runtime['workspace_dir'] / '__edusync_exec__.py'
             execution_script.write_text(code, encoding='utf-8')
@@ -1040,7 +1040,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
             execution_time = time.time() - start_time
             
             execution = CodeExecution.objects.create(
-                Operator=Operator,
+                operator=operator_obj,
                 code=code,
                 stdout=result.stdout,
                 stderr=result.stderr,
@@ -1052,7 +1052,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
             return Response(CodeExecutionSerializer(execution).data, status=status.HTTP_201_CREATED)
         except subprocess.TimeoutExpired:
             execution = CodeExecution.objects.create(
-                Operator=Operator,
+                operator=operator_obj,
                 code=code,
                 stderr='Code execution timed out',
                 return_code=1,
@@ -1061,7 +1061,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
             return Response(CodeExecutionSerializer(execution).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             execution = CodeExecution.objects.create(
-                Operator=Operator,
+                operator=operator_obj,
                 code=code,
                 stderr=str(e),
                 return_code=1,
@@ -1072,18 +1072,18 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def run_terminal(self, request):
         """Run terminal command in Operator's persistent runtime/workspace."""
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         command = (request.data.get('command') or '').strip()
 
-        if not Operator_id or not command:
-            return Response({'error': 'Operator_id and command required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not operator_id or not command:
+            return Response({'error': 'operator_id and command required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        throttle_request(f"terminal:{Operator_id}", limit=45, window_seconds=60)
+        throttle_request(f"terminal:{operator_id}", limit=45, window_seconds=60)
 
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
 
         try:
-            runtime = _ensure_Operator_runtime(str(Operator.id))
+            runtime = _ensure_operator_runtime(str(operator_obj.id))
             start_time = time.time()
 
             # Convenience: allow plain "pip ..." while still using Operator's own venv.
@@ -1103,7 +1103,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
             execution_time = time.time() - start_time
 
             execution = CodeExecution.objects.create(
-                Operator=Operator,
+                operator=operator_obj,
                 code=f'$ {command}',
                 stdout=result.stdout,
                 stderr=result.stderr,
@@ -1125,16 +1125,16 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
             return Response({'error': f'Terminal command failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])
-    def get_Operator_executions(self, request):
-        """Get execution history for Operator"""
-        Operator_id = request.query_params.get('Operator_id')
+    def get_operator_executions(self, request):
+        """Get execution history for operator"""
+        operator_id = request.query_params.get('operator_id')
         try:
             limit = int(request.query_params.get('limit', 50))
         except (TypeError, ValueError):
             limit = 50
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
-        executions = Operator.executions.all()[:limit]
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        executions = operator_obj.executions.all()[:limit]
         
         return Response(CodeExecutionSerializer(executions, many=True).data)
 
@@ -1163,18 +1163,18 @@ Keep your response concise and educational.
     @action(detail=False, methods=['post'])
     def get_suggestion(self, request):
         """Get AI suggestion for code"""
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         code = request.data.get('code', '')
         prompt = request.data.get('prompt', '')
         model_choice = (request.data.get('model') or 'gemini-pro').strip()
 
-        throttle_request(f"ai:{Operator_id}", limit=12, window_seconds=60)
+        throttle_request(f"ai:{operator_id}", limit=12, window_seconds=60)
         
         if not code:
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         
-        Operator = get_object_or_404(Operator, id=Operator_id)
-        session = Operator.session
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        session = operator_obj.session
         
         if not session.ai_enabled:
             return Response({'error': 'AI disabled for this session'}, status=status.HTTP_403_FORBIDDEN)
@@ -1199,7 +1199,7 @@ Keep your response concise and educational.
                 suggestion_text = 'No suggestion returned.'
             
             suggestion = AISuggestion.objects.create(
-                Operator=Operator,
+                operator=operator_obj,
                 code_context=code,
                 prompt=prompt,
                 suggestion=encrypt_text(suggestion_text)
@@ -1277,11 +1277,11 @@ Keep your response concise and educational.
     @action(detail=False, methods=['post'])
     def grade_test(self, request):
         """Grade a test using deterministic checks for MCQ/TF and AI-assisted grading for practicals.
-        Payload: session_id, Operator_id, test (JSON as generated), answers: {question_id: answer}
+        Payload: session_id, operator_id, test (JSON as generated), answers: {question_id: answer}
         Returns: per-question scores, feedback, and total.
         """
         session_id = request.data.get('session_id')
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         test = request.data.get('test')
         answers = request.data.get('answers') or {}
         model_choice = (request.data.get('model') or 'gemini-pro').strip()
@@ -1320,7 +1320,7 @@ Keep your response concise and educational.
                     rubric = q.get('rubric', '')
                     Operator_resp = Operator_answer or ''
                     prompt_text = (
-                        f"You are a grader. Grade the Operator's answer against the rubric.\n\n"
+                        f"You are a grader. Grade the operator's answer against the rubric.\n\n"
                         f"Question:\n{q.get('prompt')}\n\n"
                         f"Rubric:\n{rubric}\n\n"
                         f"Operator answer:\n{Operator_resp}\n\n"
@@ -1431,24 +1431,24 @@ class TestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'session_id and content required'}, status=status.HTTP_400_BAD_REQUEST)
         session = get_object_or_404(Session, id=session_id)
         enforce_session_token(request, session)
-        test = Test.objects.create(session=session, title=title, content=content, created_by=request.data.get('created_by', 'tutor'))
+        test = Test.objects.create(session=session, title=title, content=content, created_by=request.data.get('created_by', 'admin'))
         return Response({'id': str(test.id), 'title': test.title, 'content': test.content, 'created_at': test.created_at}, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])
     def submit(self, request):
         test_id = request.data.get('test_id') or request.data.get('id')
-        Operator_id = request.data.get('Operator_id')
+        operator_id = request.data.get('operator_id')
         answers = request.data.get('answers') or {}
         model_choice = (request.data.get('model') or 'gemini-pro').strip()
 
-        if not test_id or not Operator_id:
-            return Response({'error': 'test_id and Operator_id required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not test_id or not operator_id:
+            return Response({'error': 'test_id and operator_id required'}, status=status.HTTP_400_BAD_REQUEST)
 
         test = get_object_or_404(Test, id=test_id)
-        Operator = get_object_or_404(Operator, id=Operator_id)
+        operator_obj = get_object_or_404(operator_obj, id=operator_id)
 
         # create submission
-        submission = TestSubmission.objects.create(test=test, Operator=Operator, answers=answers)
+        submission = TestSubmission.objects.create(test=test, operator=operator_obj, answers=answers)
 
         # grading logic (same approach as AISuggestionViewSet.grade_test)
         try:
@@ -1478,7 +1478,7 @@ class TestViewSet(viewsets.ModelViewSet):
                     rubric = q.get('rubric', '')
                     Operator_resp = Operator_answer or ''
                     prompt_text = (
-                        f"You are a grader. Grade the Operator's answer against the rubric.\n\n"
+                        f"You are a grader. Grade the operator's answer against the rubric.\n\n"
                         f"Question:\n{q.get('prompt')}\n\n"
                         f"Rubric:\n{rubric}\n\n"
                         f"Operator answer:\n{Operator_resp}\n\n"
@@ -1537,7 +1537,7 @@ class TestViewSet(viewsets.ModelViewSet):
 class SessionTaskViewSet(viewsets.ModelViewSet):
     """Realtime task management for tutor and Operators."""
 
-    queryset = SessionTask.objects.select_related('session', 'assigned_Operator').all()
+    queryset = SessionTask.objects.select_related('session', 'assigned_operator').all()
     serializer_class = SessionTaskSerializer
 
     def _broadcast_task_event(self, session_id: str, event_type: str, task):
@@ -1570,19 +1570,19 @@ class SessionTaskViewSet(viewsets.ModelViewSet):
         session = get_object_or_404(Session, id=session_id)
         enforce_session_token(request, session)
 
-        assigned_Operator_id = request.data.get('assigned_Operator_id')
-        assigned_Operator = None
-        if assigned_Operator_id:
-            assigned_Operator = get_object_or_404(Operator, id=assigned_Operator_id, session=session)
+        assigned_operator_id = request.data.get('assigned_operator_id')
+        assigned_operator = None
+        if assigned_operator_id:
+            assigned_operator = get_object_or_404(operator_obj, id=assigned_operator_id, session=session)
 
         task = SessionTask.objects.create(
             session=session,
-            assigned_Operator=assigned_Operator,
+            assigned_operator=assigned_operator,
             title=title,
             description=request.data.get('description', ''),
             status=request.data.get('status', 'todo'),
             priority=request.data.get('priority', 'medium'),
-            created_by=request.data.get('created_by', 'tutor'),
+            created_by=request.data.get('created_by', 'admin'),
             due_at=request.data.get('due_at') or None,
         )
 
@@ -1605,16 +1605,16 @@ class SessionTaskViewSet(viewsets.ModelViewSet):
         if 'due_at' in request.data:
             task.due_at = request.data.get('due_at') or None
 
-        if 'assigned_Operator_id' in request.data:
-            assigned_Operator_id = request.data.get('assigned_Operator_id')
-            if assigned_Operator_id:
-                task.assigned_Operator = get_object_or_404(
+        if 'assigned_operator_id' in request.data:
+            assigned_operator_id = request.data.get('assigned_operator_id')
+            if assigned_operator_id:
+                task.assigned_operator = get_object_or_404(
                     Operator,
-                    id=assigned_Operator_id,
+                    id=assigned_operator_id,
                     session=task.session,
                 )
             else:
-                task.assigned_Operator = None
+                task.assigned_operator = None
 
         task.bump_version()
         task.save()
