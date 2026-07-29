@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -131,7 +131,7 @@ export default function Home() {
             setJoinStatus('Connected. Redirecting...');
             // Use session_id from response (server returns actual UUID regardless of token input)
             const sessionUuid = data.session_id || cleanSessionId;
-            window.location.href = `/operator/${sessionUuid}/${data.id}`;
+            window.location.href = `/workspace/${sessionUuid}/${data.id}`;
         } catch (err) {
             const isAbortError = err instanceof DOMException && err.name === 'AbortError';
             const isTimeoutReason = err === 'join-timeout';
@@ -151,7 +151,7 @@ export default function Home() {
                         if (res.ok && data?.id) {
                             setJoinStatus('Connected. Redirecting...');
                             const sessionUuid = data.session_id || cleanSessionId;
-                            window.location.href = `/operator/${sessionUuid}/${data.id}`;
+                            window.location.href = `/workspace/${sessionUuid}/${data.id}`;
                             return;
                         }
                     } catch {
@@ -179,8 +179,8 @@ export default function Home() {
     return (
         <div className={styles.container}>
             <div className={styles.operatorPanel}>
-                <h1>ðŸ‘¨â€ðŸŽ“ operator Access</h1>
-                <p>operators only: join your admin session by entering Session ID/token and your name.</p>
+                <h1>🔐 Operator Access</h1>
+                <p>Join your secure session by entering the Session ID/token and your name.</p>
 
                 <form className={styles.operatorForm} onSubmit={handleJoinSubmit}>
                     <input
@@ -210,9 +210,9 @@ export default function Home() {
                     </button>
                 </form>
 
-                <p className={styles.hintText}>Use either Session ID (UUID) or Session Token from the admin page.</p>
+                <p className={styles.hintText}>Use either Session ID (UUID) or Session Token from the Command Center.</p>
                 <div className={styles.homeButtons}>
-                    <Link href="/admin" className={styles.secondaryBtn}>admin Portal</Link>
+                    <Link href="/command-center" className={styles.secondaryBtn}>Command Center</Link>
                 </div>
             </div>
         </div>

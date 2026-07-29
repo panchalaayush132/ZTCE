@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -21,10 +21,10 @@ interface Session {
     operator_count: number;
     active_operators: number;
     session_token: string;
-    operators?: operator[];
+    operators?: Operator[];
 }
 
-interface operator {
+interface Operator {
     id: string;
     username: string;
     name: string;
@@ -32,7 +32,7 @@ interface operator {
     current_activity?: { status: string; message: string };
 }
 
-interface operatorFile {
+interface OperatorFile {
     id: string;
     filename: string;
     content: string;
