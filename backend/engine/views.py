@@ -555,7 +555,7 @@ class SessionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def heartbeat(self, request, pk=None):
         """Update Operator heartbeat (keep-alive)"""
-        operator_obj = get_object_or_404(operator_obj, id=pk)
+        operator_obj = get_object_or_404(Operator, id=pk)
         operator_obj.last_heartbeat = timezone.now()
         operator_obj.save(update_fields=['last_heartbeat'])
 
@@ -705,7 +705,7 @@ class OperatorFileViewSet(viewsets.ModelViewSet):
         content = request.data.get('content', '# Start coding here\n')
         language = request.data.get('language', 'python')
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         
         file, created = OperatorFile.objects.get_or_create(
             operator=operator_obj,
@@ -773,7 +773,7 @@ class ActivityLogViewSet(viewsets.ModelViewSet):
         message = request.data.get('message', '')
         error_details = request.data.get('error_details', '')
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         
         log = ActivityLog.objects.create(
             operator=operator_obj,
@@ -793,7 +793,7 @@ class ActivityLogViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             limit = 50
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         logs = operator_obj.activity_logs.all()[:limit]
         
         return Response(ActivityLogSerializer(logs, many=True).data)
@@ -813,7 +813,7 @@ class CodeSnapshotViewSet(viewsets.ModelViewSet):
         message = request.data.get('message', '')
         language = request.data.get('language', 'python')
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         
         snapshot = CodeSnapshot.objects.create(
             operator=operator_obj,
@@ -834,7 +834,7 @@ class CodeSnapshotViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             limit = 20
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         snapshots = operator_obj.snapshots.all()[:limit]
         
         return Response(CodeSnapshotSerializer(snapshots, many=True).data)
@@ -852,7 +852,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         sender = request.data.get('sender')
         content = request.data.get('content')
 
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
 
         message = Message.objects.create(
             operator=operator_obj,
@@ -871,7 +871,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             limit = 100
 
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         messages = operator_obj.messages.all()[:limit]
 
         return Response(MessageSerializer(messages, many=True).data)
@@ -1008,7 +1008,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
 
         throttle_request(f"execute:{operator_id}", limit=25, window_seconds=60)
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
 
         if file_id:
             operator_file = get_object_or_404(OperatorFile, id=file_id, operator=operator_obj)
@@ -1080,7 +1080,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
 
         throttle_request(f"terminal:{operator_id}", limit=45, window_seconds=60)
 
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
 
         try:
             runtime = _ensure_operator_runtime(str(operator_obj.id))
@@ -1133,7 +1133,7 @@ class CodeExecutionViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             limit = 50
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         executions = operator_obj.executions.all()[:limit]
         
         return Response(CodeExecutionSerializer(executions, many=True).data)
@@ -1173,7 +1173,7 @@ Keep your response concise and educational.
         if not code:
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
         session = operator_obj.session
         
         if not session.ai_enabled:
@@ -1445,7 +1445,7 @@ class TestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'test_id and operator_id required'}, status=status.HTTP_400_BAD_REQUEST)
 
         test = get_object_or_404(Test, id=test_id)
-        operator_obj = get_object_or_404(operator_obj, id=operator_id)
+        operator_obj = get_object_or_404(Operator, id=operator_id)
 
         # create submission
         submission = TestSubmission.objects.create(test=test, operator=operator_obj, answers=answers)
@@ -1573,7 +1573,7 @@ class SessionTaskViewSet(viewsets.ModelViewSet):
         assigned_operator_id = request.data.get('assigned_operator_id')
         assigned_operator = None
         if assigned_operator_id:
-            assigned_operator = get_object_or_404(operator_obj, id=assigned_operator_id, session=session)
+            assigned_operator = get_object_or_404(Operator, id=assigned_operator_id, session=session)
 
         task = SessionTask.objects.create(
             session=session,

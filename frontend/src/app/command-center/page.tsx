@@ -1801,7 +1801,7 @@ export default function CommanderPage() {
                                 <p>Live synced</p>
                             </div>
                             <Whiteboard
-                                isCommander={true}
+                                isAdmin={true}
                                 initialData={whiteboardSceneData || undefined}
                                 onUpdate={sendWhiteboardUpdate}
                             />
@@ -1894,7 +1894,7 @@ export default function CommanderPage() {
                     </div>
                     <div style={{ flex: 1, width: '100%', overflow: 'auto' }}>
                         <PdfWhiteboard
-                            isCommander={true}
+                            isAdmin={true}
                             pdfUrl={maximizedPdf.url}
                             pdfTitle={maximizedPdf.title}
                             currentPage={pdfCurrentPages[maximizedPdf.fileId] || 1}
